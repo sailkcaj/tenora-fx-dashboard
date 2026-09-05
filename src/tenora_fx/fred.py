@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import io
 import logging
-import time
 from datetime import date
 
 import pandas as pd
-import requests
 
+from . import httpclient
 from .config import FRED_CSV_URL
+from .httpclient import HttpError
 
 log = logging.getLogger(__name__)
-
-USER_AGENT = "tenora-fx-dashboard/0.1 (data pipeline)"
 
 
 class FredError(RuntimeError):
@@ -57,7 +55,7 @@ def fetch_series(
     start: date | None = None,
     end: date | None = None,
     *,
-    session: requests.Session | None = None,
+    session=None,
     timeout: float = 30,
     retries: int = 3,
     backoff: float = 1.5,
@@ -68,25 +66,13 @@ def fetch_series(
         params["cosd"] = start.isoformat()
     if end is not None:
         params["coed"] = end.isoformat()
-    sess = session or requests.Session()
-    headers = {"User-Agent": USER_AGENT}
-
-    last_error: FredError | None = None
-    for attempt in range(1, retries + 1):
-        try:
-            resp = sess.get(FRED_CSV_URL, params=params, timeout=timeout, headers=headers)
-        except requests.RequestException as exc:
-            last_error = FredError(f"{fred_id}: request failed ({exc})")
-        else:
-            if resp.status_code == 200:
-                return parse_fred_csv(resp.text, fred_id)
-            last_error = FredError(f"{fred_id}: HTTP {resp.status_code} from FRED")
-            if resp.status_code == 404:
-                raise FredError(f"{fred_id}: HTTP 404, series not found on FRED")
-            if 400 <= resp.status_code < 500 and resp.status_code != 429:
-                raise last_error  # other client errors will not fix themselves
-        if attempt < retries:
-            log.warning("%s (attempt %d/%d), retrying", last_error, attempt, retries)
-            time.sleep(backoff * attempt)
-    assert last_error is not None
-    raise last_error
+    try:
+        resp = httpclient.get(
+            FRED_CSV_URL, session=session, params=params, timeout=timeout,
+            retries=retries, backoff=backoff, label=fred_id,
+        )
+    except HttpError as exc:
+        if exc.status == 404:
+            raise FredError(f"{fred_id}: HTTP 404, series not found on FRED") from exc
+        raise FredError(str(exc)) from exc
+    return parse_fred_csv(resp.text, fred_id)

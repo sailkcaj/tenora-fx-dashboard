@@ -23,6 +23,7 @@ env/
 data/**/*.parquet
 data/**/*.csv
 data/**/*.json
+data/raw/cache/
 !data/**/.gitkeep
 
 # --- OS / editors ---
