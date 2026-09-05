@@ -1,0 +1,10 @@
+# Runtime
+yfinance==1.7.0
+pandas==3.0.5
+pyarrow==25.0.1
+requests==2.34.2
+python-dotenv==1.2.3
+streamlit==1.63.0
+
+# Dev / test
+pytest==9.1.1
