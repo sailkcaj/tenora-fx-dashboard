@@ -9,13 +9,16 @@ pipeline pulls daily FX spot prices (Yahoo Finance via yfinance) and policy rate
   with per-series failure handling, parquet storage, pull manifest, unit tests, dashboard stub.
   Verified pull on 2026-09-05: **18/18 series ok** (after adding the ECB / BoE / MoF sources and
   the CNY fallback for USDCNH, see "Approximations" below).
-- **Next (not started - agree scope with the user first):** derived risk metrics (returns, realised
-  vol, rate differentials / carry), dashboard pages, geopolitical / event overlays.
+- **M2 - dashboard visual shell (done, Sep 2026):** Streamlit app over the real store: stat tiles
+  with sparklines for all ten pairs, Plotly spot / 2-year-spread / rates charts, range + pair
+  filters, table view, provenance expander, dark theme in `.streamlit/config.toml`.
+- **Next (not started - agree scope with the user first):** scenario logic and derived risk
+  metrics (returns, realised vol, rate differentials / carry), geopolitical / event overlays.
 
 ## Tech stack
 - Python 3.13 in `.venv` (`python3 -m venv .venv`, Anaconda python3 on this Mac).
 - pandas 3.x + pyarrow (parquet), openpyxl (BoE Excel workbooks), yfinance 1.x, requests,
-  python-dotenv, streamlit, pytest.
+  python-dotenv, streamlit 1.63 + plotly 7 (dashboard), pytest.
 - Versions are pinned in `requirements.txt`. `pyproject.toml` reads that same file, and
   `pip install -e .` installs `tenora_fx` (under `src/`) as an editable package.
 
@@ -36,7 +39,9 @@ src/tenora_fx/httpclient.py    shared GET with retries / User-Agent
 src/tenora_fx/fx_prices.py     yfinance fetcher + normaliser
 src/tenora_fx/storage.py       parquet read/write, wide loaders, manifest
 src/tenora_fx/pipeline.py      orchestration, report, CLI
-dashboard/app.py               Streamlit app (M1: wiring check, tables only, no charts yet)
+src/tenora_fx/viz.py           dashboard visual layer: colour tokens, Plotly template, figure builders
+dashboard/app.py               Streamlit layout (header, stat tiles, filters, charts, tables)
+.streamlit/config.toml         dark theme (tokens mirrored in viz.py)
 tests/                         pytest, no network (fake sessions in tests/fakes.py);
                                test_dashboard.py runs the Streamlit script headlessly via AppTest
 ```
@@ -105,6 +110,25 @@ say so if precision matters.
   Rate or BoJ policy-rate series: BOERUKM stops 2017, IRSTCB01JPM156N stops Dec 2023). A daily
   Bank Rate is available from the BoE IADB API (IUDBEDR) if the proxy ever matters.
 - **jp_2y is real data, not a proxy** (MoF benchmark yields), as are uk_2y and eu_2y.
+
+## Dashboard (`dashboard/app.py` + `src/tenora_fx/viz.py`)
+- Layout: header with data freshness, ten `st.metric` tiles (latest close, change vs prior close,
+  30-day sparkline; USD/CNH carries the proxy note as its help tooltip and a caption), one filter
+  row (range segmented control, pair pills) that scopes everything below it, the selected pair's
+  spot chart next to its 2-year yield spread (base minus quote, only where both legs are USD /
+  GBP / EUR / JPY), the four-region 2-year yield and policy-rate charts, then "Table view" and
+  "Data sources and freshness" expanders. Weekend bars are dropped in the app, not the store.
+- Follows the dataviz method (see the `dataviz` skill): region colours are fixed categorical
+  slots (US blue, UK orange, EU aqua, JP yellow) validated for colour-vision deficiency on the
+  `#0c1220` surface; keep that assignment everywhere. 2px lines, hairline solid grids, unified
+  hover, legend plus non-colliding end labels on multi-series charts, no dual axes, text in
+  text tokens never series colours. Chart titles are page text, not Plotly titles.
+- `st.plotly_chart(..., theme=None)` and explicit transparent `paper_bgcolor` / `plot_bgcolor`
+  on every figure: Streamlit otherwise paints its theme colours onto the plot area.
+- Streamlit's own top bar is hidden by CSS; `st.pills` / `st.segmented_control` need
+  `width="content"` inside the wrapping horizontal container or they overflow.
+- Verify visually after layout changes (`streamlit run dashboard/app.py`, then look): the tests
+  only prove the script runs and the figures have the right traces.
 
 ## Conventions
 - Every parquet file has a tz-naive `DatetimeIndex` named `date`. FX files: `open, high, low, close`

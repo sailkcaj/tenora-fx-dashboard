@@ -1,0 +1,18 @@
+# Dashboard theme. Colour tokens are mirrored in src/tenora_fx/viz.py; keep both in step.
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#0c1220"
+secondaryBackgroundColor = "#141c2b"
+textColor = "#e4e8f1"
+linkColor = "#6da7ec"
+borderColor = "#1f293d"
+dataframeBorderColor = "#1f293d"
+showWidgetBorder = true
+baseRadius = "0.6rem"
+font = "system-ui, -apple-system, 'Segoe UI', sans-serif"
+headingFont = "system-ui, -apple-system, 'Segoe UI', sans-serif"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500"]
+
+[browser]
+gatherUsageStats = false

@@ -1,48 +1,189 @@
 """Tenora FX Risk Dashboard - Streamlit entry point.
 
-Milestone 1: a wiring check over the parquet store (pull status and latest rows).
-Charts and risk metrics arrive in later milestones.
+Milestone 2: the visual shell over the real parquet store (scenario logic comes next).
+Run ``python -m tenora_fx.pipeline`` first, then ``streamlit run dashboard/app.py``.
 """
+
+from __future__ import annotations
+
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from tenora_fx import storage
+from tenora_fx import storage, viz
+from tenora_fx.config import FX_PAIRS
 
-st.set_page_config(page_title="Tenora FX Risk", layout="wide")
-st.title("Tenora FX Risk Dashboard")
+st.set_page_config(page_title="Tenora FX Risk", page_icon="📈", layout="wide",
+                   initial_sidebar_state="collapsed")
 
-manifest = storage.read_manifest()
-if manifest is None:
+st.markdown(
+    """
+    <style>
+    .block-container {padding-top: 1.75rem; padding-bottom: 2.5rem; max-width: 1440px;}
+    header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"] {display: none;}
+    .tn-title {font-size: 1.75rem; font-weight: 650; letter-spacing: -0.01em; line-height: 1.15; margin: 0;}
+    .tn-sub {color: #b6bdcc; font-size: 0.95rem; margin: 0.2rem 0 0;}
+    .tn-status {color: #8a93a6; font-size: 0.85rem; text-align: right; line-height: 1.5; margin: 0;}
+    .tn-status b {color: #e4e8f1; font-weight: 600;}
+    .tn-section {font-size: 1.05rem; font-weight: 600; color: #e4e8f1; margin: 1.4rem 0 0.2rem;}
+    .tn-stats {color: #8a93a6; font-size: 0.85rem; margin: 0 0 0.25rem;}
+    .tn-stats b {color: #b6bdcc; font-weight: 600;}
+    .tn-chart-title {font-size: 0.95rem; font-weight: 600; color: #e4e8f1; margin: 0.4rem 0 0;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+CHART_CONFIG = {"displayModeBar": False, "responsive": True}
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_store():
+    manifest = storage.read_manifest()
+    closes = viz.weekdays(storage.load_fx_closes())
+    rates = viz.weekdays(storage.load_rates())
+    return manifest, closes, rates
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_ohlc(pair_name: str) -> pd.DataFrame:
+    return viz.weekdays(storage.load_parquet(storage.fx_path(pair_name)))
+
+
+def section(title: str) -> None:
+    st.markdown(f'<p class="tn-section">{title}</p>', unsafe_allow_html=True)
+
+
+def stats_line(html: str) -> None:
+    st.markdown(f'<p class="tn-stats">{html}</p>', unsafe_allow_html=True)
+
+
+def chart_title(container, title: str) -> None:
+    container.markdown(f'<p class="tn-chart-title">{title}</p>', unsafe_allow_html=True)
+
+
+manifest, closes, rates = load_store()
+if manifest is None or closes.empty:
     st.warning("No data yet. Run `python -m tenora_fx.pipeline` first.")
     st.stop()
 
-window = manifest["lookback"]
+pairs = [p for p in FX_PAIRS if p.name in closes.columns]
+by_name = {p.name: p for p in pairs}
+as_of = closes.index.max()
+pulled = datetime.fromisoformat(manifest["generated_at"]).strftime("%-d %b %H:%M UTC")
 summary = manifest["summary"]
-st.caption(
-    f"Last pull {manifest['generated_at']} | window {window['start']} to {window['end']} | "
-    f"{summary['ok']}/{summary['total']} series ok"
+
+# --- header -----------------------------------------------------------------------------------
+head_left, head_right = st.columns([3, 1], vertical_alignment="top")
+head_left.markdown(
+    '<p class="tn-title">Tenora FX Risk</p>'
+    '<p class="tn-sub">Spot, policy rates and 2-year yields across the hedging book</p>',
+    unsafe_allow_html=True,
+)
+head_right.markdown(
+    f'<p class="tn-status">Prices as of <b>{as_of:%a %-d %b %Y}</b><br>'
+    f'{summary["ok"]}/{summary["total"]} series ok · pulled {pulled}</p>',
+    unsafe_allow_html=True,
 )
 
-st.subheader("Pull status")
-status = pd.DataFrame(manifest["results"])
-st.dataframe(
-    status[["group", "key", "source", "status", "rows", "first", "last", "error", "note"]],
-    hide_index=True,
-)
+# --- latest spot: one stat tile per pair ----------------------------------------------------------
+proxy_notes = viz.proxy_notes(manifest)
+for row in (pairs[:5], pairs[5:]):
+    columns = st.columns(len(row), gap="small")
+    for column, pair in zip(columns, row):
+        series = closes[pair.name].dropna()
+        change = viz.pct_change(series)
+        column.metric(
+            pair.label,
+            viz.format_price(float(series.iloc[-1])),
+            delta=None if change is None else viz.format_pct(change),
+            border=True,
+            chart_data=series.tail(30).tolist(),
+            chart_type="line",
+            help=proxy_notes.get(pair.label),
+        )
+for label, detail in proxy_notes.items():
+    st.caption(f"{label}: {detail}. Daily change is versus the prior close.")
+if not proxy_notes:
+    st.caption("Daily change is versus the prior close.")
 
-st.subheader("Latest FX closes")
-closes = storage.load_fx_closes()
-if closes.empty:
-    st.info("No FX files on disk.")
-else:
-    st.dataframe(closes.tail(10).sort_index(ascending=False))
+# --- filters: one row, scoping everything below ------------------------------------------------------
+with st.container(horizontal=True, wrap=True, vertical_alignment="bottom", gap="medium"):
+    range_code = st.segmented_control("Range", list(viz.RANGES), default=viz.DEFAULT_RANGE,
+                                      key="range", width="content") or viz.DEFAULT_RANGE
+    pair_name = st.pills("Pair", list(by_name), default=pairs[0].name, key="pair", width="content",
+                         format_func=lambda name: by_name[name].label) or pairs[0].name
+pair = by_name[pair_name]
 
-st.subheader("Latest rates (%)")
-rates = storage.load_rates()
-if rates.empty:
-    st.info("No rate files on disk.")
+# --- spot and 2-year spread for the selected pair --------------------------------------------------------
+ohlc = viz.slice_range(load_ohlc(pair.name), range_code)
+close = ohlc["close"].dropna()
+stats = viz.range_stats(close)
+spread = viz.two_year_spread(rates, pair.base, pair.quote)
+if spread is not None:
+    spread = viz.slice_range(spread.to_frame(), range_code).iloc[:, 0]
+
+spot_col, spread_col = st.columns([3, 2], gap="medium") if spread is not None else (st.container(), None)
+with spot_col:
+    section(f"{pair.label} spot")
+    stats_line(
+        f"{range_code} change <b>{viz.format_pct(stats['change_pct'])}</b> · "
+        f"high <b>{viz.format_price(stats['high'])}</b> · low <b>{viz.format_price(stats['low'])}</b> · "
+        f"last <b>{viz.format_price(stats['last'])}</b> on {stats['last_date']:%-d %b}"
+    )
+    st.plotly_chart(viz.spot_figure(close, pair.label), width="stretch", theme=None, config=CHART_CONFIG)
+if spread_col is not None:
+    with spread_col:
+        section(f"2-year yield spread, {pair.base} minus {pair.quote}")
+        stats_line(
+            f"latest <b>{float(spread.iloc[-1]):+.2f} pp</b> · "
+            f"{range_code} change <b>{float(spread.iloc[-1] - spread.iloc[0]):+.2f} pp</b>"
+        )
+        st.plotly_chart(viz.spread_figure(spread, f"{pair.base}-{pair.quote}"), width="stretch",
+                        theme=None, config=CHART_CONFIG)
 else:
-    st.dataframe(rates.ffill().tail(10).sort_index(ascending=False))
+    missing = [c for c in (pair.base, pair.quote) if c not in viz.CURRENCY_2Y]
+    st.caption(f"No 2-year yield series for {' or '.join(missing)} yet, so no spread is shown. "
+               "Spreads are available where both legs are USD, GBP, EUR or JPY.")
+
+# --- rates -----------------------------------------------------------------------------------------
+section("Rates")
+two_year = viz.slice_range(rates[[k for k in viz.YIELD_2Y_COLUMNS if k in rates.columns]], range_code)
+policy = viz.slice_range(rates[[k for k in viz.POLICY_COLUMNS if k in rates.columns]], range_code)
+rates_left, rates_right = st.columns(2, gap="medium")
+chart_title(rates_left, "2-year government yields")
+rates_left.plotly_chart(viz.rates_figure(two_year, viz.YIELD_2Y_COLUMNS),
+                        width="stretch", theme=None, config=CHART_CONFIG)
+chart_title(rates_right, "Policy rates")
+rates_right.plotly_chart(viz.rates_figure(policy, viz.POLICY_COLUMNS, step=True),
+                         width="stretch", theme=None, config=CHART_CONFIG)
+st.caption(viz.METHODOLOGY_NOTE)
+
+# --- table view and provenance ---------------------------------------------------------------------
+with st.expander("Table view"):
+    tab_spot, tab_rates = st.tabs([f"{pair.label} daily OHLC", "Rates (%)"])
+    decimals = viz.price_decimals(stats["last"])
+    tab_spot.dataframe(
+        ohlc.sort_index(ascending=False),
+        column_config={
+            "_index": st.column_config.DateColumn("Date", format="D MMM YYYY"),
+            **{c: st.column_config.NumberColumn(c.title(), format=f"%.{decimals}f") for c in ohlc.columns},
+        },
+        height=320,
+    )
+    rates_view = viz.slice_range(rates, range_code).sort_index(ascending=False)
+    tab_rates.dataframe(
+        rates_view,
+        column_config={
+            "_index": st.column_config.DateColumn("Date", format="D MMM YYYY"),
+            **{c: st.column_config.NumberColumn(c, format="%.2f") for c in rates_view.columns},
+        },
+        height=320,
+    )
+
+with st.expander("Data sources and freshness"):
+    status = pd.DataFrame(manifest["results"])
+    st.dataframe(status[["group", "key", "source", "status", "rows", "first", "last", "note"]], hide_index=True)
