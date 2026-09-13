@@ -6,6 +6,8 @@ Charts and risk metrics arrive in later milestones.
 
 import pandas as pd
 import streamlit as st
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from tenora_fx import storage
 
