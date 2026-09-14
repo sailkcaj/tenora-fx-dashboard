@@ -1,0 +1,10 @@
+name: Keep dashboard awake
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -sL https://tenora-fx-dashboard-8kctdwsnkqvljakjwgezvx.streamlit.app > /dev/null
