@@ -7,4 +7,4 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - run: curl -sL https://tenora-fx-dashboard-8kctdwsnkqvljakjwgezvx.streamlit.app > /dev/null
+       - run: curl -sL --max-redirs 5 -o /dev/null https://tenora-fx-dashboard-8kctdwsnkqvljakjwgezvx.streamlit.app || true
