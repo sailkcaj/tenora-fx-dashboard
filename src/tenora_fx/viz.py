@@ -42,6 +42,12 @@ RANGES: dict[str, pd.DateOffset | None] = {
 }
 DEFAULT_RANGE = "6M"
 
+# Forward horizons for the VaR fan chart, in trading days (~21 per month).
+HORIZON_DAYS: dict[str, int] = {"1M": 21, "3M": 63, "6M": 126}
+DEFAULT_HORIZON = "1M"
+
+CURRENCY_SYMBOLS = {"USD": "$", "GBP": "£", "EUR": "€", "JPY": "¥"}
+
 METHODOLOGY_NOTE = (
     "2-year yields are not one methodology: the US figure is FRED's constant-maturity par yield, "
     "the UK and euro-area figures are zero-coupon spot rates from the Bank of England and ECB (AAA) "
@@ -77,6 +83,11 @@ def format_price(value: float) -> str:
 
 def format_pct(value: float) -> str:
     return f"{value:+.2f}%"
+
+
+def format_notional(amount: float, currency: str) -> str:
+    symbol = CURRENCY_SYMBOLS.get(currency)
+    return f"{symbol}{amount:,.0f}" if symbol else f"{amount:,.0f} {currency}"
 
 
 def pct_change(series: pd.Series, periods: int = 1) -> float | None:
@@ -256,4 +267,32 @@ def rates_figure(wide: pd.DataFrame, columns: dict[str, str], *, step: bool = Fa
                                font=dict(color=INK_2, size=12))
         fig.update_layout(yaxis=dict(range=_padded_range(low, high)))  # keep lines off the legend
     fig.update_layout(showlegend=True, yaxis=dict(ticksuffix=unit))
+    return fig
+
+
+def fan_chart(pair: str, band_df: pd.DataFrame, spot: float, height: int = 360) -> go.Figure:
+    """A VaR confidence band fanning out from today's spot: filled envelope between ``band_df``'s
+    ``upper``/``lower`` columns (indexed by trading day out from today), plus a dashed spot line."""
+    decimals = price_decimals(spot)
+    fig = _figure(height)
+    fig.add_trace(go.Scatter(
+        x=band_df.index, y=band_df["upper"], mode="lines", line=dict(color=ACCENT, width=0),
+        showlegend=False, hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=band_df.index, y=band_df["lower"], mode="lines", line=dict(color=ACCENT, width=0),
+        fill="tonexty", fillcolor="rgba(57,135,229,0.14)", name=f"{pair} confidence band",
+        showlegend=False, hovertemplate=f"<b>%{{y:,.{decimals}f}}</b><extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=[band_df.index.min(), band_df.index.max()], y=[spot, spot], mode="lines",
+        line=dict(color=ACCENT, width=2, dash="dash"), showlegend=False,
+        hovertemplate=f"<b>{format_price(spot)}</b> current spot<extra></extra>",
+    ))
+    low, high = float(band_df["lower"].min()), float(band_df["upper"].max())
+    fig.update_layout(
+        showlegend=False,
+        xaxis=dict(title=dict(text="Trading days ahead", font=dict(color=MUTED, size=11))),
+        yaxis=dict(range=_padded_range(low, high), tickformat=f",.{decimals}f"),
+    )
     return fig

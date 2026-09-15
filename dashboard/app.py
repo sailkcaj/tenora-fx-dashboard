@@ -13,7 +13,7 @@ import streamlit as st
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from tenora_fx import storage, viz
+from tenora_fx import risk, storage, viz
 from tenora_fx.config import FX_PAIRS
 
 st.set_page_config(page_title="Tenora FX Risk", page_icon="📈", layout="wide",
@@ -32,12 +32,14 @@ st.markdown(
     .tn-stats {color: #8a93a6; font-size: 0.85rem; margin: 0 0 0.25rem;}
     .tn-stats b {color: #b6bdcc; font-weight: 600;}
     .tn-chart-title {font-size: 0.95rem; font-weight: 600; color: #e4e8f1; margin: 0.4rem 0 0;}
+    .tn-risk-headline {font-size: 1.15rem; font-weight: 650; color: #e4e8f1; margin: 0; line-height: 1.4;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 CHART_CONFIG = {"displayModeBar": False, "responsive": True}
+CONFIDENCE_LEVELS = {"95%": 0.95, "99%": 0.99}
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -148,6 +150,45 @@ else:
     missing = [c for c in (pair.base, pair.quote) if c not in viz.CURRENCY_2Y]
     st.caption(f"No 2-year yield series for {' or '.join(missing)} yet, so no spread is shown. "
                "Spreads are available where both legs are USD, GBP, EUR or JPY.")
+
+# --- unhedged exposure risk: historical VaR + a fan chart -------------------------------------------
+section("Unhedged exposure risk")
+full_close = load_ohlc(pair.name)["close"].dropna()
+returns = risk.daily_returns(full_close)
+spot = float(full_close.iloc[-1])
+
+with st.container(horizontal=True, wrap=True, vertical_alignment="bottom", gap="medium"):
+    notional = st.number_input(f"Notional exposure ({pair.base})", min_value=0.0, value=1_000_000.0,
+                               step=50_000.0, format="%.0f", key="var_notional")
+    confidence_label = st.segmented_control("Confidence", list(CONFIDENCE_LEVELS), default="95%",
+                                            key="var_confidence", width="content") or "95%"
+    horizon_label = st.segmented_control("Horizon", list(viz.HORIZON_DAYS), default=viz.DEFAULT_HORIZON,
+                                         key="var_horizon", width="content") or viz.DEFAULT_HORIZON
+if confidence_label == "99%":
+    st.caption("99% confidence is less reliable here — it's drawn from the same ~2 years of daily "
+               "history as everything else, which is a thin sample for a 1-in-100 tail.")
+
+confidence = CONFIDENCE_LEVELS[confidence_label]
+horizon_days = viz.HORIZON_DAYS[horizon_label]
+
+if returns.empty or notional <= 0:
+    st.caption("Not enough return history yet to estimate risk for this pair.")
+else:
+    var_amount = risk.historical_var(returns, confidence, horizon_days, notional)
+    band = risk.confidence_band(spot, returns, confidence, horizon_days)
+    tail_pct = (1 - confidence) * 100
+
+    with st.container(border=True):
+        st.markdown(
+            f'<p class="tn-risk-headline">{tail_pct:.0f}% chance of losing more than '
+            f'<b>{viz.format_notional(var_amount, pair.base)}</b> over {horizon_label} '
+            f'({horizon_days} trading days) if unhedged</p>',
+            unsafe_allow_html=True,
+        )
+    st.plotly_chart(viz.fan_chart(pair.label, band, spot), width="stretch", theme=None, config=CHART_CONFIG)
+    st.caption("Historical simulation VaR: the empirical worst-case daily move from the pair's own "
+               "history, scaled to the horizon by √days. The shaded band is a parametric envelope "
+               "(mean ± z·σ·√days) shown for shape, not the headline number above.")
 
 # --- rates -----------------------------------------------------------------------------------------
 section("Rates")
