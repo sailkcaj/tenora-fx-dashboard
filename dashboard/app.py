@@ -85,11 +85,16 @@ head_left.markdown(
     '<p class="tn-sub">Spot, policy rates and 2-year yields across the hedging book</p>',
     unsafe_allow_html=True,
 )
-head_right.markdown(
-    f'<p class="tn-status">Prices as of <b>{as_of:%a %-d %b %Y}</b><br>'
-    f'{summary["ok"]}/{summary["total"]} series ok · pulled {pulled}</p>',
-    unsafe_allow_html=True,
-)
+with head_right:
+    with st.popover("📄", width=560,
+                    help="About this dashboard: the stack, the data, and what everything means"):
+        for doc_tab, content in zip(st.tabs(list(viz.DOCS)), viz.DOCS.values()):
+            doc_tab.markdown(content)
+    st.markdown(
+        f'<p class="tn-status">Prices as of <b>{as_of:%a %-d %b %Y}</b><br>'
+        f'{summary["ok"]}/{summary["total"]} series ok · pulled {pulled}</p>',
+        unsafe_allow_html=True,
+    )
 
 # --- latest spot: one stat tile per pair ----------------------------------------------------------
 proxy_notes = viz.proxy_notes(manifest)
