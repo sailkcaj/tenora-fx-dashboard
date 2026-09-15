@@ -296,3 +296,38 @@ def fan_chart(pair: str, band_df: pd.DataFrame, spot: float, height: int = 360) 
         yaxis=dict(range=_padded_range(low, high), tickformat=f",.{decimals}f"),
     )
     return fig
+
+
+def vol_figure(vol: pd.Series, height: int = 300) -> go.Figure:
+    """Rolling realised volatility (annualised %), as a filled line with an end label."""
+    s = vol.dropna()
+    fig = _figure(height)
+    fig.add_trace(go.Scatter(
+        x=s.index, y=s.values, mode="lines", name="Realised vol",
+        line=dict(color=ACCENT, width=2), fill="tozeroy", fillcolor="rgba(57,135,229,0.08)",
+        hovertemplate="<b>%{y:.1f}%</b> annualised<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=[s.index[-1]], y=[s.iloc[-1]], mode="markers", showlegend=False, hoverinfo="skip",
+        marker=dict(size=9, color=ACCENT, line=dict(width=2, color=SURFACE)),
+    ))
+    fig.add_annotation(x=s.index[-1], y=float(s.iloc[-1]), text=f"{float(s.iloc[-1]):.1f}%",
+                       showarrow=False, xanchor="left", xshift=10, font=dict(color=INK_2, size=12))
+    fig.update_layout(showlegend=False,
+                      yaxis=dict(range=_padded_range(0.0, float(s.max())), ticksuffix="%"))
+    return fig
+
+
+def drawdown_figure(dd: pd.Series, height: int = 300) -> go.Figure:
+    """Underwater chart: percent drawdown from the running peak, filled below a zero baseline."""
+    s = dd.dropna()
+    fig = _figure(height)
+    fig.add_trace(go.Scatter(
+        x=s.index, y=s.values, mode="lines", name="Drawdown",
+        line=dict(color=SLOTS[1], width=2), fill="tozeroy", fillcolor="rgba(217,89,38,0.14)",
+        hovertemplate="<b>%{y:.1f}%</b><extra></extra>",
+    ))
+    fig.add_hline(y=0, line=dict(color=AXIS, width=1))
+    fig.update_layout(showlegend=False,
+                      yaxis=dict(range=_padded_range(float(s.min()), 0.0), ticksuffix="%"))
+    return fig

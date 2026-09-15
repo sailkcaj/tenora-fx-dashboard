@@ -41,3 +41,34 @@ def confidence_band(spot: float, returns: pd.Series, confidence: float, horizon_
         {"upper": [spot * (1 + s) for s in spread], "lower": [spot * (1 - s) for s in spread]},
         index=pd.Index(days, name="day"),
     )
+
+
+def realised_vol(returns: pd.Series, window: int = 30, annualise: int = 252) -> pd.Series:
+    """Rolling realised volatility from daily returns, annualised and expressed in percent."""
+    return returns.dropna().rolling(window).std().dropna() * math.sqrt(annualise) * 100
+
+
+def scenario_pnl(notional: float, shock_pct: float) -> float:
+    """P&L on ``notional`` from an instantaneous spot shock (e.g. ``shock_pct=-10`` for -10%)."""
+    return notional * shock_pct / 100
+
+
+def carry_cost(notional: float, spread_pp: float) -> float:
+    """Annualised carry from holding ``notional`` unhedged, from a base-minus-quote 2-year yield
+    spread in percentage points (used as a covered-interest-parity stand-in for forward points).
+    Positive: the base currency's yield advantage earns carry. Negative: it costs carry."""
+    return notional * spread_pp / 100
+
+
+def drawdown(prices: pd.Series) -> pd.Series:
+    """Percent drawdown from the running peak (e.g. ``-12.0`` for 12% below the high so far)."""
+    prices = prices.dropna()
+    return (prices / prices.cummax() - 1) * 100
+
+
+def max_drawdown(prices: pd.Series) -> dict:
+    """The worst drawdown in the series: its magnitude plus the peak/trough dates either side."""
+    dd = drawdown(prices)
+    trough_date = dd.idxmin()
+    peak_date = prices.dropna().loc[:trough_date].idxmax()
+    return {"magnitude": float(dd.loc[trough_date]), "peak_date": peak_date, "trough_date": trough_date}

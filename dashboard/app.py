@@ -125,6 +125,7 @@ ohlc = viz.slice_range(load_ohlc(pair.name), range_code)
 close = ohlc["close"].dropna()
 stats = viz.range_stats(close)
 spread = viz.two_year_spread(rates, pair.base, pair.quote)
+missing = [c for c in (pair.base, pair.quote) if c not in viz.CURRENCY_2Y]
 if spread is not None:
     spread = viz.slice_range(spread.to_frame(), range_code).iloc[:, 0]
 
@@ -147,7 +148,6 @@ if spread_col is not None:
         st.plotly_chart(viz.spread_figure(spread, f"{pair.base}-{pair.quote}"), width="stretch",
                         theme=None, config=CHART_CONFIG)
 else:
-    missing = [c for c in (pair.base, pair.quote) if c not in viz.CURRENCY_2Y]
     st.caption(f"No 2-year yield series for {' or '.join(missing)} yet, so no spread is shown. "
                "Spreads are available where both legs are USD, GBP, EUR or JPY.")
 
@@ -189,6 +189,69 @@ else:
     st.caption("Historical simulation VaR: the empirical worst-case daily move from the pair's own "
                "history, scaled to the horizon by √days. The shaded band is a parametric envelope "
                "(mean ± z·σ·√days) shown for shape, not the headline number above.")
+
+# --- realised volatility -----------------------------------------------------------------------------
+section("Realised volatility")
+VOL_WINDOW = 30
+vol = risk.realised_vol(returns, window=VOL_WINDOW)
+if vol.empty:
+    st.caption("Not enough history yet for a rolling volatility estimate.")
+else:
+    stats_line(
+        f"{VOL_WINDOW}-day annualised vol, latest <b>{float(vol.iloc[-1]):.1f}%</b> · "
+        f"2Y range <b>{float(vol.min()):.1f}%–{float(vol.max()):.1f}%</b>"
+    )
+    st.plotly_chart(viz.vol_figure(vol), width="stretch", theme=None, config=CHART_CONFIG)
+    st.caption("Rolling standard deviation of daily log returns, annualised (×√252) and "
+               "expressed as a percentage — the market's realised risk, not a forecast.")
+
+# --- stress test --------------------------------------------------------------------------------------
+section("Stress test")
+shock_pct = st.slider("Instant shock to spot (%)", min_value=-20.0, max_value=20.0, value=-10.0,
+                      step=0.5, key="stress_shock")
+shocked_spot = spot * (1 + shock_pct / 100)
+shock_pnl = risk.scenario_pnl(notional, shock_pct)
+direction = "loss" if shock_pnl < 0 else "gain"
+with st.container(border=True):
+    st.markdown(
+        f'<p class="tn-risk-headline">A {shock_pct:+.1f}% move takes {pair.label} to '
+        f'<b>{viz.format_price(shocked_spot)}</b> — a {direction} of '
+        f'<b>{viz.format_notional(abs(shock_pnl), pair.base)}</b> on the notional above</p>',
+        unsafe_allow_html=True,
+    )
+st.caption("A simple instantaneous re-pricing of the notional at the shocked spot — no vol, "
+           "correlation or hedging response modelled, just \"what if the rate moved by this much.\"")
+
+# --- carry: cost of staying unhedged -------------------------------------------------------------------
+section("Carry: cost of staying unhedged")
+if spread is None:
+    st.caption(f"No 2-year yield series for {' or '.join(missing)} yet, so carry can't be estimated. "
+               "Available where both legs are USD, GBP, EUR or JPY.")
+else:
+    carry_pp = float(spread.iloc[-1])
+    carry_amount = risk.carry_cost(notional, carry_pp)
+    verb = "earns" if carry_amount >= 0 else "costs"
+    with st.container(border=True):
+        st.markdown(
+            f'<p class="tn-risk-headline">Staying unhedged {verb} roughly '
+            f'<b>{viz.format_notional(abs(carry_amount), pair.base)}</b> a year, from the '
+            f'{pair.base}-{pair.quote} 2-year rate gap ({carry_pp:+.2f} pp)</p>',
+            unsafe_allow_html=True,
+        )
+    st.caption("Approximation via covered interest-rate parity: the 2-year yield spread stands in for "
+               "forward points. Assumes the notional is held as a base-currency exposure for a year; "
+               "real forward pricing would use matched-tenor rates, not the 2-year point.")
+
+# --- historical drawdown ------------------------------------------------------------------------------
+section("Historical drawdown")
+dd = risk.drawdown(full_close)
+worst = risk.max_drawdown(full_close)
+stats_line(
+    f"worst over the period <b>{worst['magnitude']:.1f}%</b>, "
+    f"{worst['peak_date']:%-d %b %Y} → {worst['trough_date']:%-d %b %Y}"
+)
+st.plotly_chart(viz.drawdown_figure(dd), width="stretch", theme=None, config=CHART_CONFIG)
+st.caption("Percent below the running high so far — a real historical event, not a model estimate.")
 
 # --- rates -----------------------------------------------------------------------------------------
 section("Rates")

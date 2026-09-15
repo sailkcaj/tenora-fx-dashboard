@@ -1,4 +1,5 @@
 import math
+import statistics
 
 import pandas as pd
 import pytest
@@ -52,3 +53,40 @@ def test_confidence_band_uses_a_higher_z_score_at_99_percent():
     band_99 = risk.confidence_band(spot=1.0, returns=returns, confidence=0.99, horizon_days=5)
     assert band_99["upper"].iloc[-1] > band_95["upper"].iloc[-1]
     assert band_99["lower"].iloc[-1] < band_95["lower"].iloc[-1]
+
+
+def test_realised_vol_matches_independently_computed_std():
+    # Every 5-value window of this alternating series has the same sample std by symmetry.
+    pattern = [0.01, -0.01] * 15
+    returns = series(pattern)
+    vol = risk.realised_vol(returns, window=5)
+    expected = statistics.stdev(pattern[:5]) * math.sqrt(252) * 100
+    assert len(vol) == len(returns) - 5 + 1
+    assert vol.iloc[0] == pytest.approx(expected, rel=1e-9)
+    assert vol.iloc[-1] == pytest.approx(expected, rel=1e-9)
+
+
+def test_scenario_pnl_sign_and_scale():
+    assert risk.scenario_pnl(1_000_000, -10) == pytest.approx(-100_000)
+    assert risk.scenario_pnl(500_000, 4) == pytest.approx(20_000)
+    assert risk.scenario_pnl(1_000_000, 0) == pytest.approx(0)
+
+
+def test_carry_cost_sign_follows_the_spread():
+    assert risk.carry_cost(2_000_000, -1.46) == pytest.approx(-29_200)
+    assert risk.carry_cost(1_000_000, 0.5) == pytest.approx(5_000)
+
+
+def test_drawdown_measures_percent_below_the_running_peak():
+    prices = series([100.0, 110.0, 90.0, 95.0, 120.0, 80.0])
+    dd = risk.drawdown(prices)
+    expected = [0.0, 0.0, (90 / 110 - 1) * 100, (95 / 110 - 1) * 100, 0.0, (80 / 120 - 1) * 100]
+    assert dd.tolist() == pytest.approx(expected)
+
+
+def test_max_drawdown_finds_the_worst_peak_to_trough_move():
+    prices = series([100.0, 110.0, 90.0, 95.0, 120.0, 80.0])
+    worst = risk.max_drawdown(prices)
+    assert worst["magnitude"] == pytest.approx((80 / 120 - 1) * 100)
+    assert worst["peak_date"] == prices.index[4]
+    assert worst["trough_date"] == prices.index[5]
