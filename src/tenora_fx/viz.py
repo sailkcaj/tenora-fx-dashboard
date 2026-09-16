@@ -84,7 +84,7 @@ they're used, and covered in the Caveats tab).
 - **Streamlit** — turns a plain Python script (`dashboard/app.py`) into the interactive web app
   you're looking at right now — no HTML/JS written by hand.
 - **Plotly** — draws every chart; Streamlit embeds Plotly figures directly.
-- **pytest** — the test suite (75 tests as of the risk-tools update), runs with no network access
+- **pytest** — the test suite (67 tests as of the risk-tools update), runs with no network access
   using fake HTTP responses, so it can't accidentally hit a live data source.
 
 #### How it's structured
