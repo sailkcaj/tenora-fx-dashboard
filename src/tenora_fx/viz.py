@@ -58,166 +58,111 @@ METHODOLOGY_NOTE = (
 # Content for the in-app "About this dashboard" popover (dashboard/app.py). Tab name -> markdown body.
 DOCS: dict[str, str] = {
     "Overview": """
-**Tenora** is an FX hedging company — it helps clients manage the risk of currency moves on their
-international cash flows. This dashboard is the team's internal risk view: current FX prices and
-the interest-rate backdrop that drives them, plus a set of tools for sizing how much an
-*unhedged* position could actually cost.
+I see this dashboard being used as the team's internal risk view, it features current FX prices and the interest rate backdrop that drives them, plus a set of tools for clients or the team to use to see how much an unhedged position could cost.
 
-**In one line:** prices on top, the interest-rate story underneath, and a risk toolkit (VaR,
-volatility, a stress slider, carry cost, and drawdown) scoped to whichever pair you're looking at.
+So we have prices on top, the interest rate story underneath and then the mighty risk toolkit which includes VaR (Value at risk), volatility, a stress slider, carry cost and drawdown (for any peak how far did it fall before it made a new high) which are scoped to whichever pair you're looking at.
 
-Everything on this page is built from real data pulled daily from public sources — nothing here
-is simulated or made up, though a few series are best-available proxies (flagged wherever
-they're used, and covered in the Caveats tab).
+Everything on this page is built from real data pulled daily from public sources, nothing here is simulated or made up, though a few series are best available proxies and are flagged wherever they're used, and covered also wrote about them in the Caveats tab
 """,
     "Tech stack": """
-#### Language & core libraries
-- **Python 3.13** — the whole project, pipeline and dashboard, is one Python codebase.
-- **pandas** — every dataset (prices, rates) is a pandas time series; almost all the math
-  (returns, volatility, VaR, drawdown) is pandas operations.
-- **pyarrow** — reads/writes the on-disk data format, **Parquet** (a fast, compact columnar file
-  format — the actual "database" for this project, no separate database server involved).
-- **yfinance** — a Python wrapper around Yahoo Finance, used to pull daily FX prices.
-- **requests** — used directly for the interest-rate sources (FRED, ECB, BoE, MoF), which don't
-  have a ready-made Python package.
-- **python-dotenv** — loads optional local settings from a `.env` file.
-- **Streamlit** — turns a plain Python script (`dashboard/app.py`) into the interactive web app
-  you're looking at right now — no HTML/JS written by hand.
-- **Plotly** — draws every chart; Streamlit embeds Plotly figures directly.
-- **pytest** — the test suite (67 tests as of the risk-tools update), runs with no network access
-  using fake HTTP responses, so it can't accidentally hit a live data source.
+**Language & core libraries**
 
-#### How it's structured
-1. **`src/tenora_fx/`** — the data pipeline and math, as an installable Python package. Each rate
-   source (FRED, ECB, BoE, MoF) has its own fetcher module; `pipeline.py` orchestrates a full
-   pull; `storage.py` reads/writes Parquet; `viz.py` builds every chart; `risk.py` has the
-   VaR / volatility / carry / drawdown math.
-2. **`dashboard/app.py`** — the Streamlit script that lays out this page: it loads the *stored*
-   data (never fetches live on page load) and calls into `viz.py` / `risk.py` for everything on
-   screen.
-3. **`data/raw/`** — the actual data, as Parquet files, one file per currency pair or rate series,
-   plus a `manifest.json` recording exactly what was pulled and when.
+- The whole project, pipeline and dashboard is all one big Python codebase.
+- Every dataset prices and rates is all pandas (pandas is just excel for code) time series (all data points are associated with a time and a date) and almost all the math like returns, volatility, VaR, drawdown is pandas operations (the built in commands pandas gives you to something to a whole column of data at once).
+- Used Parquet (is a file format for storing tables of data think like .csv) as the storage layer for all pulled data and used pyarrow (python library) to read and write the Parquet files
+- Then used yfinance (a python library used to pull data from Yahoo) to pull FX prices from Yahoo Finance
+- Used requests (python library for making HTTP requests(a basic way computers ask for something over the internet)) to collect the interest rate data from sources (FRED, ECB, BoE, MoF), as they don't have python packages
+- Used python dotenv (small library used to read .env files not hard code them) loads optional local settings from a .env file.
+- Then used Streamlit to turn a plain Python script in our case dashboard/app.py into the interactive web app you're looking at right now with no HTML or JS (core coding languages most websites are normally built from) written by hand.
+- Used Plotly for all the chart work
+- Finally used pytest (library to test code) to test that everything works as its supposed to it ran 75 tests per function
 
-#### Deployment
-The code lives on GitHub; **Streamlit Community Cloud** hosts the live app and rebuilds it
-automatically whenever new code is pushed to `main`. The data itself doesn't regenerate on
-deploy — the last pipeline run's Parquet files are committed to the repo, so the live app always
-has something to show without needing to re-run the pipeline on the server.
+**How it's structured**
+
+src/tenora_fx is basically the data pipeline and math as an installable Python package. Each rate source (FRED, ECB, BoE, MoF) has its own fetcher module (the fetcher module takes one rate sources data and gives it back as just a clean table) pipeline.py orchestrates a full pull storage.py then reads/writes Parquet then viz.py builds every chart and then our risk.py  has the VaR, volatility, carry, drawdown math.
+
+Then we have dashboard/app.py which is responsible for the pages structure. It's the Streamlit script that lays out this page, it loads the stored data and calls into viz.py or risk.py  for everything on screen.
+
+data/raw/ this is the actual data as Parquet files one file per currency pair or rate series, also we have what I like to call manifest.json which records exactly what was pulled and when.
+
+**Deployment**
+
+The code lives on GitHub (website that stores code and keeps history changes made) then Streamlit Community Cloud hosts the live app and rebuilds it automatically whenever new code is pushed to main. The data itself doesn't regenerate on deployment what happens is the last pipeline run's Parquet files which are then committed to the repo, so the live app always has something to show without needing to rerun the pipeline on the server.
 """,
     "Data & sources": """
-#### FX prices — Yahoo Finance
-10 pairs, daily bars, 2 years of history: EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD,
-NZD/USD, USD/ZAR, USD/BRL, USD/CNH.
+So for FX prices we got all data from Yahoo Finance and looked at 10 different pairs
+and 2 years of history: EUR/USD, GBP/USD, USD/JPY, USD/CHF, AUD/USD, USD/CAD, NZD/USD, USD/ZAR, USD/BRL, USD/CNH.
 
-*Caveat:* Yahoo has no real history for offshore USD/CNH, so it falls back to **CNY=X** (onshore
-yuan) as a proxy — flagged on the USD/CNH tile and in the sources table below.
+Just to add, Yahoo has no real history for offshore USD/CNH, so we use CNY=X(onshore yuan) as a proxy I thought it was important pair to have so i kept it in
 
-#### Interest rates — four regions, two rates each
+Now interest rates we looked at four regions, two rates each, looking at all US,UK,EU,Japan we pull our interest rate data from FRED (federal reserve economic data) we also got US's 2 year yield (the return you would get if you buy 2 year government bond) from FRED then we got the UK's from bank of england, EU from the ECB data portal and Japans from Japans MoF (ministry of finance)
 
-| Region | Policy rate source | 2-year yield source |
-|---|---|---|
-| US | FRED (Fed funds target, upper limit) | FRED (Treasury 2Y par yield) |
-| UK | FRED, OECD monthly proxy (~3mo lag) | Bank of England (fitted gilt curve) |
-| EU | FRED (ECB deposit rate) | ECB Data Portal (AAA curve) |
-| Japan | FRED, OECD monthly proxy (~3mo lag) | Japan MoF (JGB benchmark yield) |
+We use four fetcher modules as each for each region (fred.py, ecb.py, boe.py,mof.py)
 
-No single free source publishes all of this, so each region uses its own official source
-directly — this is why four separate fetcher modules exist (`fred.py`, `ecb.py`, `boe.py`,
-`mof.py`), each handling that source's own file format and quirks.
+Also to add all the four 2 year yields aren't computed the same way so for US we use par yield(some people call it face value but the amount you receive when the bond matures), then for UK and EU we used zero coupon bonds (bond that pays no coupons just face value) from a fitted curve which is created with bonds with varying maturities then this is fed into a mathematical model which strips the coupons and fits a line then we use this line to get our 2 year yield, and finally Japan we a benchmark compound yield(the government just pick a real bond trading today which is closest to 2 year maturity and the observed yield becomes our 2 year yield).
 
-*Caveat:* the four 2-year yields aren't computed the same way (US = par yield, UK/EU =
-zero-coupon spot from a fitted curve, Japan = benchmark compound yield) — fine for direction and
-differentials, not for precise cross-country comparison.
-
-#### Provenance
-Every pipeline run writes a `manifest.json`: which series succeeded, how many rows, the date
-range, and any caveat. The **"Data sources and freshness"** table at the bottom of the dashboard
-is this manifest, shown raw — the receipt for every number on the page.
+Every pipeline run writes a manifest.json it shows which series succeeded, how many rows, the date range, and any caveat. The Data sources and freshness  table at the bottom of the dashboard is just the manifest, this just is basically a receipt for every number on the page.
 """,
     "Dashboard guide": """
-Walking down the page in order:
+Starting at the top of the page we have the Stat tiles which shows the latest price, % change vs prior close, and a 30 day sparkline(simplified line chart) for all 10 pairs at a glance.
 
-**Stat tiles (top)** — latest price, % change vs prior close, and a 30-day sparkline for all 10
-pairs at a glance.
+Then we have the Range and Pair filters which once picked control everything below like how far back the charts look and which single pair the detail charts focus on.
 
-**Range / Pair filters** — control everything below: how far back the charts look, and which
-single pair the detail charts focus on.
+Spot chart which shows the selected pair's price history over the chosen range.
 
-**Spot chart** — the selected pair's price history over the chosen range.
+To the right of the spot chart we have the 2-year yield spread chart only shown when both currencies in the pair are USD, GBP, EUR or JPY as these are the four regions with yield data. It's the base currency's 2 year yield minus the quote currencies 2 year yield and as currencies mostly move on interest rate differences this is why i put the interest rate chart or so called moving chart next to the 2 year yield chart or so called what happened chart.
 
-**2-year yield spread** — only shown when *both* currencies in the pair are USD, GBP, EUR or JPY
-(the four regions with yield data). It's the base currency's 2-year yield minus the quote
-currency's — currencies mostly move on interest-rate differences, so this is the "why is it
-moving" chart next to the "what happened" chart.
+Then we have the unhedged exposure risk section telling us if you don't hedge this position, how much could you realistically lose? This section contains a VaR chart(a chart which tells us the realistic range of this pair in the future), also has confidence interval 95% and 99% (which just asks how sure you want the VaR estimate to be), we also have a Horizon tab where you can pick from 1 month to 6 month (how far into the future the loss estimate applies to)
 
-**Unhedged exposure risk (VaR)** — "if you don't hedge this position, how much could you
-realistically lose?" See the Risk methods tab for the maths.
+Then we have the Realised volatility(which tells us how nervous we should be about a particular pair regardless of the way it moves) section showing how much the pair has actually been swinging day to day, as a rolling annualised percentage.
 
-**Realised volatility** — how much the pair has actually been swinging day to day, as a rolling
-annualised percentage. Rising vol = rising risk, independent of direction.
+The Stress test part has a manual slider which allows us to pick a shock size, see the instant currency impact on the notional.
 
-**Stress test** — a manual slider: pick a shock size, see the instant currency impact on the
-notional. No modelling, just "what if."
+Carry cost (the amount of money you lose or gain each year purely from the interest rate gap between two currencies) of staying unhedged. How it works is it turns the yield spread into a yearly currency cost or benefit.
 
-**Carry: cost of staying unhedged** — turns the yield spread into a yearly currency cost or
-benefit — directly the pitch for why hedging has a price attached to *not* doing it.
+Historical drawdown this part shows the worst real peak to trough loss the pair has actually had over the specific period we are looking at.
 
-**Historical drawdown** — the worst real peak-to-trough loss the pair has actually had over the
-lookback — a genuine historical event, not a model output.
+The rates charts section just shows all four regions 2 year yields and policy rates side by side giving a nice macro backdrop behind every pair.
 
-**Rates charts** — all four regions' 2-year yields and policy rates side by side, the macro
-backdrop behind every pair.
-
-**Table view / Data sources** — the raw numbers and the provenance receipt, for when someone
-wants to check a figure rather than read a chart.
+At the bottom we have Table view and Data sources, the raw numbers and the receipt of all numbers, for when someone wants to check a figure rather than read a chart.
 """,
     "Risk methods": """
-#### Value at Risk (VaR) — historical simulation
-Takes the pair's own daily log returns over its full history, finds the empirical percentile
-matching your confidence level (e.g. the worst 5% of days for 95% confidence), scales it to the
-chosen horizon by **√(horizon in trading days)**, and applies it to the notional. No assumption
-that returns are normally distributed — it uses what actually happened.
+**Value at Risk (VaR) — historical simulation**
 
-#### Confidence band (the fan chart's shape)
-A simpler, parametric envelope — `spot × (1 ± z·σ·√day)` — using the empirical daily volatility
-(σ) but a standard normal z-score (1.645 at 95%, 2.33 at 99%). This exists to draw a
-sensible-looking fan, not to carry the headline number — that's the VaR figure above it.
+Takes the pair's own daily log returns (special way to calculate return using logarithms not subtraction) over its full history, finds the empirical percentile matching your confidence level (e.g. the worst 5% of days for 95% confidence), scales it to the chosen horizon by √(horizon in trading days), and applies it to the notional. No assumption that returns are normally distributed, it justΩ≈ uses what actually happened.
 
-#### Realised volatility
-Rolling standard deviation of daily log returns, annualised by multiplying by **√252** (the
-standard trading-days-per-year convention), expressed as a percentage.
+**Confidence band (the fan chart's shape)**
 
-#### Stress test
-Pure arithmetic: `notional × shock% ÷ 100`. No volatility, correlation, or hedging response is
-modelled — it's a single "what if the rate moved by exactly this much, right now" snapshot.
+A simpler, parametric envelope (spot * (1+- z*sigma*sqrt(days))) using the empirical daily volatility (sigma) but a standard normal z score (1.645 at 95%, 2.33 at 99%). This purely exists to draw a sensible looking fan, not to carry the headline number which is the VaR's figure above it.
 
-#### Carry (cost of staying unhedged)
-Uses **covered interest-rate parity** as a stand-in: the 2-year yield spread approximates the
-forward points a real hedge would be priced off. `notional × spread(pp) ÷ 100` gives a rough
-annual cost or benefit. A real trading desk would use matched-tenor forward rates, not the
-2-year point — this is a simplification for a quick read, not a dealing price.
+**Realised volatility**
 
-#### Drawdown
-`price ÷ running peak so far − 1`, as a percentage. The worst point in that series, plus the
-dates either side of it, is the headline "worst drawdown" stat.
+Rolling standard deviation of daily log returns, annualised by multiplying by sqrt(252) (252 because its standard trading days per year convention), expressed as a percentage.
+
+**Stress test**
+
+This is just pure arithmetic (notional*shock%)/100  there is no volatility, correlation or hedging response modelled it's a single what if the rate moved by exactly this much what would be the impact
+
+**Carry or cost of staying unhedged**
+
+This uses covered interest rate parity as a stand in: the 2-year yield spread approximates the forward points a real hedge would be priced off.(notional*spread(pp))/100 gives a rough annual cost or benefit. A real trading desk would use matched-tenor forward rates, not the 2 year point this is a simplification for a quick read, not a dealing price.
+
+**Drawdown**
+
+(price/running peak so far) - 1, as a percentage. The worst point in that series, plus the dates either side of it, is then the worst drawdown stat.
 """,
     "Caveats": """
-- **USD/CNH** is really onshore CNY (Yahoo has no offshore CNH history) — usually tracks within a
-  few tenths of a percent, can diverge under stress.
-- **UK and Japan policy rates** are OECD monthly proxies with roughly a 3-month lag, not the live
-  BoE / BoJ decision rate (FRED carries no current series for either).
-- **2-year yields aren't methodologically identical** across the four regions — fine for
-  direction and spreads, not exact comparison.
-- **7 of the 10 pairs have no yield-based tools** (spread chart and carry figure) — AUD, CAD,
-  NZD, ZAR and BRL have no rate data wired up yet, so those sections show a fallback message
-  instead of a number.
-- **VaR and volatility only see ~2 years of history** — 99% confidence is explicitly flagged as
-  thin-sample for a claimed 1-in-100 event.
-- **Stress test is a snapshot, not a simulation** — it doesn't account for how volatility or
-  correlated markets would actually behave during a real shock.
-- **Carry is an approximation, not a forward price** — see the Risk methods tab.
-- **This is a risk-awareness tool, not a trading or pricing system** — none of these numbers
-  should be used to place a real hedge without a proper pricing desk.
+USD/CNH is really onshore CNY as Yahoo has no offshore CNH history but it usually tracks within a few tenths of a percent.
+
+Also UK and Japan policy rates are OECD(organisation for economic cooperation and development) monthly proxies with roughly a 3 month lag, not the live BoE or BoJ decision rate as FRED carries no current series for either.
+
+2 year yields aren't calculated the same across the four regions
+
+VaR and volatility only see 2 years of history so for 99% confidence I've explicitly flagged it as a thin sample for a claimed 1 in 100 event.
+
+Stress test is a snapshot, not a simulation
+
+Carry is an approximation, not a forward price
 """,
 }
 
