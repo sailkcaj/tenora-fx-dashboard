@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-09-22T11:39:28+00:00",
+  "generated_at": "2026-09-23T11:54:06+00:00",
   "lookback": {
     "years": 2,
-    "start": "2024-09-22",
-    "end": "2026-09-22"
+    "start": "2024-09-23",
+    "end": "2026-09-23"
   },
   "summary": {
     "total": 18,
@@ -17,130 +17,130 @@
       "key": "EURUSD",
       "source": "yfinance:EURUSD=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/EURUSD.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:03+00:00"
+      "pulled_at": "2026-09-23T11:53:41+00:00"
     },
     {
       "group": "fx",
       "key": "GBPUSD",
       "source": "yfinance:GBPUSD=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/GBPUSD.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:04+00:00"
+      "pulled_at": "2026-09-23T11:53:42+00:00"
     },
     {
       "group": "fx",
       "key": "USDJPY",
       "source": "yfinance:USDJPY=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDJPY.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:04+00:00"
+      "pulled_at": "2026-09-23T11:53:43+00:00"
     },
     {
       "group": "fx",
       "key": "USDCHF",
       "source": "yfinance:USDCHF=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDCHF.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:05+00:00"
+      "pulled_at": "2026-09-23T11:53:44+00:00"
     },
     {
       "group": "fx",
       "key": "AUDUSD",
       "source": "yfinance:AUDUSD=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/AUDUSD.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:06+00:00"
+      "pulled_at": "2026-09-23T11:53:44+00:00"
     },
     {
       "group": "fx",
       "key": "USDCAD",
       "source": "yfinance:USDCAD=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDCAD.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:06+00:00"
+      "pulled_at": "2026-09-23T11:53:45+00:00"
     },
     {
       "group": "fx",
       "key": "NZDUSD",
       "source": "yfinance:NZDUSD=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/NZDUSD.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:07+00:00"
+      "pulled_at": "2026-09-23T11:53:46+00:00"
     },
     {
       "group": "fx",
       "key": "USDZAR",
       "source": "yfinance:USDZAR=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDZAR.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:07+00:00"
+      "pulled_at": "2026-09-23T11:53:46+00:00"
     },
     {
       "group": "fx",
       "key": "USDBRL",
       "source": "yfinance:USDBRL=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDBRL.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:08+00:00"
+      "pulled_at": "2026-09-23T11:53:47+00:00"
     },
     {
       "group": "fx",
       "key": "USDCNH",
       "source": "yfinance:CNY=X",
       "status": "ok",
-      "rows": 517,
+      "rows": 518,
       "first": "2024-09-23",
-      "last": "2026-09-22",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/fx/USDCNH.parquet",
       "error": null,
       "note": "fetched via fallback CNY=X after USDCNH=X failed; CNY=X is onshore CNY, used as a proxy for offshore CNH (Yahoo carries no CNH history)",
-      "pulled_at": "2026-09-22T11:39:09+00:00"
+      "pulled_at": "2026-09-23T11:53:48+00:00"
     },
     {
       "group": "rates",
@@ -148,25 +148,25 @@
       "source": "fred:DFEDTARU",
       "status": "ok",
       "rows": 730,
-      "first": "2024-09-22",
-      "last": "2026-09-21",
+      "first": "2024-09-23",
+      "last": "2026-09-22",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/us_policy_rate.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:10+00:00"
+      "pulled_at": "2026-09-23T11:53:50+00:00"
     },
     {
       "group": "rates",
       "key": "us_2y",
       "source": "fred:DGS2",
       "status": "ok",
-      "rows": 497,
+      "rows": 498,
       "first": "2024-09-23",
-      "last": "2026-09-18",
+      "last": "2026-09-21",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/us_2y.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:11+00:00"
+      "pulled_at": "2026-09-23T11:53:51+00:00"
     },
     {
       "group": "rates",
@@ -179,46 +179,46 @@
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/uk_policy_rate.parquet",
       "error": null,
       "note": "proxy for BoE Bank Rate (FRED's BOERUKM ends 2017); OECD data, ~3-month lag",
-      "pulled_at": "2026-09-22T11:39:12+00:00"
+      "pulled_at": "2026-09-23T11:53:52+00:00"
     },
     {
       "group": "rates",
       "key": "uk_2y",
       "source": "boe_yield_curve:2.0",
       "status": "ok",
-      "rows": 505,
+      "rows": 506,
       "first": "2024-09-23",
-      "last": "2026-09-21",
+      "last": "2026-09-22",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/uk_2y.parquet",
       "error": null,
       "note": "BoE yield-curve dataset (the IADB API only has 5/10/20-year par yields)",
-      "pulled_at": "2026-09-22T11:39:13+00:00"
+      "pulled_at": "2026-09-23T11:53:54+00:00"
     },
     {
       "group": "rates",
       "key": "eu_policy_rate",
       "source": "fred:ECBDFR",
       "status": "ok",
-      "rows": 730,
-      "first": "2024-09-22",
-      "last": "2026-09-21",
+      "rows": 731,
+      "first": "2024-09-23",
+      "last": "2026-09-23",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/eu_policy_rate.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:14+00:00"
+      "pulled_at": "2026-09-23T11:53:56+00:00"
     },
     {
       "group": "rates",
       "key": "eu_2y",
       "source": "ecb:YC/B.U2.EUR.4F.G_N_A.SV_C_YM.SR_2Y",
       "status": "ok",
-      "rows": 508,
+      "rows": 509,
       "first": "2024-09-23",
-      "last": "2026-09-21",
+      "last": "2026-09-22",
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/eu_2y.parquet",
       "error": null,
       "note": "AAA curve; all-issuer variant is YC/B.U2.EUR.4F.G_N_C.SV_C_YM.SR_2Y",
-      "pulled_at": "2026-09-22T11:39:17+00:00"
+      "pulled_at": "2026-09-23T11:53:59+00:00"
     },
     {
       "group": "rates",
@@ -231,7 +231,7 @@
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/jp_policy_rate.parquet",
       "error": null,
       "note": "proxy for BoJ policy rate (FRED's IRSTCB01JPM156N ends Dec 2023); OECD data, ~3-month lag",
-      "pulled_at": "2026-09-22T11:39:18+00:00"
+      "pulled_at": "2026-09-23T11:54:00+00:00"
     },
     {
       "group": "rates",
@@ -244,7 +244,7 @@
       "path": "/Users/jacklias/tenora-fx-dashboard/data/raw/rates/jp_2y.parquet",
       "error": null,
       "note": "",
-      "pulled_at": "2026-09-22T11:39:28+00:00"
+      "pulled_at": "2026-09-23T11:54:05+00:00"
     }
   ]
 }
